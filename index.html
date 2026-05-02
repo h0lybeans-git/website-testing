@@ -23,7 +23,7 @@ h1 {
   margin: 5px;
 }
 
-#shop, #secret {
+#shop {
   margin-top: 15px;
   padding: 15px;
   background: rgba(255,255,255,0.05);
@@ -48,7 +48,30 @@ img {
   border-radius: 15px;
 }
 
-#loading { opacity: 0.7; }
+#terminal {
+  display: none;
+  margin-top: 20px;
+  padding: 20px;
+  background: black;
+  color: #00ff66;
+  font-family: monospace;
+  text-align: left;
+  border-radius: 15px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#terminalInput {
+  width: 90%;
+  margin-top: 10px;
+  background: #111;
+  color: #00ff66;
+  border: none;
+  padding: 10px;
+  font-family: monospace;
+  outline: none;
+}
 </style>
 </head>
 
@@ -73,44 +96,14 @@ img {
 <button onclick="chaosMode()">👹 Chaos</button>
 <button onclick="saveGame()">💾 Save</button>
 
-<div id="loading"></div>
 <h2 id="title"></h2>
 <img id="meme">
+<div id="loading"></div>
 
-  <div id="terminal" style="
-display:none;
-margin-top:20px;
-padding:20px;
-background:black;
-color:#00ff66;
-font-family:monospace;
-text-align:left;
-border-radius:15px;
-max-width:800px;
-margin-left:auto;
-margin-right:auto;
-">
-
-<div id="terminalOutput">
-beans@beanland:~$
-</div>
-
-<input
-id="terminalInput"
-type="text"
-placeholder="type command..."
-style="
-width:90%;
-margin-top:10px;
-background:#111;
-color:#00ff66;
-border:none;
-padding:10px;
-font-family:monospace;
-outline:none;
-"
-/>
-
+<!-- SHELL -->
+<div id="terminal">
+  <div id="terminalOutput">beans@beanland:~$</div>
+  <input id="terminalInput" placeholder="type command..." />
 </div>
 
 <script>
@@ -119,64 +112,12 @@ let beanCoins = 0;
 let xp = 0;
 let level = 1;
 
-let upgrades = {
-  speed: 0,
-  quality: 0,
-  luck: 0,
-  xpBoost: 0
-};
-
+let upgrades = { speed:0, quality:0, luck:0, xpBoost:0 };
 let recent = [];
 let chaos = null;
 
-/* 🐧 SECRET SYSTEM ADDED */
+let shellUnlocked = false;
 let keyBuffer = "";
-let secretsUsed = {
-  sudo: false,
-  god: false,
-  fork: false,
-  love: false
-};
-
-document.addEventListener("keydown", (e) => {
-  keyBuffer += e.key.toLowerCase();
-  if (keyBuffer.length > 60) keyBuffer = keyBuffer.slice(-60);
-  checkSecrets();
-});
-
-function checkSecrets() {
-
-  if (!secretsUsed.sudo && keyBuffer.includes("sudo beans")) {
-    secretsUsed.sudo = true;
-    beanCoins += 100;
-    upgrades.speed += 2;
-    updateUI();
-    alert("🐧 sudo beans activated (+100 coins)");
-  }
-
-  if (!secretsUsed.god && keyBuffer.includes("bean god")) {
-    secretsUsed.god = true;
-    beanCoins += 250;
-    upgrades.luck += 5;
-    updateUI();
-    alert("👑 BEAN GOD MODE");
-  }
-
-  if (!secretsUsed.fork && keyBuffer.includes("fork bomb")) {
-    secretsUsed.fork = true;
-    chaosMode();
-    alert("💥 FORK BOMB ACTIVATED");
-  }
-
-  if (!secretsUsed.love && keyBuffer.includes("i love beans")) {
-    secretsUsed.love = true;
-    beanCoins += 10;
-    updateUI();
-    document.getElementById("title").innerText =
-      "💚 bean affection detected";
-  }
-}
-/* 🐧 END SECRET SYSTEM */
 
 function updateUI(){
   document.getElementById("coins").innerText = "🪙 Coins: " + beanCoins;
@@ -184,33 +125,24 @@ function updateUI(){
     `📈 Level: ${level} (XP: ${xp}/100)`;
 }
 
-function addXP(amount){
-  let gain = amount + upgrades.xpBoost * 2;
-
-  xp += gain;
-
+function addXP(a){
+  xp += a + upgrades.xpBoost;
   if(xp >= 100){
     xp -= 100;
     level++;
     beanCoins += 10 * level;
   }
-
   updateUI();
 }
 
 function earnCoins(ups){
-  let gain = 1;
-  if(ups > 500) gain = 5;
-  else if(ups > 200) gain = 3;
-  else if(ups > 50) gain = 2;
-
-  beanCoins += gain;
-  addXP(gain * 3);
+  let g = ups > 500 ? 5 : ups > 200 ? 3 : ups > 50 ? 2 : 1;
+  beanCoins += g;
+  addXP(g * 3);
   updateUI();
 }
 
-function norm(s){return (s||"").toLowerCase().replace(/\s/g,"");}
-
+/* MEME */
 async function getMeme(){
   document.getElementById("loading").innerText = "fetching chaos...";
 
@@ -220,19 +152,14 @@ async function getMeme(){
   let data;
 
   for(let i=0;i<5;i++){
-    const res = await fetch(`https://meme-api.com/gimme/${sub}`);
-    const d = await res.json();
-
+    const r = await fetch(`https://meme-api.com/gimme/${sub}`);
+    const d = await r.json();
     if(!d.url || d.nsfw) continue;
-
     data = d;
     break;
   }
 
   if(!data) return;
-
-  recent.push(data.url);
-  if(recent.length>30) recent.shift();
 
   document.getElementById("meme").src = data.url;
   document.getElementById("title").innerText = `[r/${sub}] ${data.title}`;
@@ -243,129 +170,84 @@ async function getMeme(){
 
 function chaosMode(){
   if(chaos){clearInterval(chaos); chaos=null; return;}
-
-  chaos = setInterval(getMeme, Math.max(200,1200-upgrades.speed*200));
+  chaos = setInterval(getMeme, 1200 - upgrades.speed*200);
 }
 
-// 🛒 UPGRADES
-function buySpeed(){ if(beanCoins<10)return;
-beanCoins-=10; upgrades.speed++; updateUI(); }
+/* SHOP */
+function buySpeed(){ if(beanCoins<10)return; beanCoins-=10; upgrades.speed++; updateUI(); }
+function buyQuality(){ if(beanCoins<15)return; beanCoins-=15; upgrades.quality++; updateUI(); }
+function buyLuck(){ if(beanCoins<20)return; beanCoins-=20; upgrades.luck++; updateUI(); }
+function buyXPBoost(){ if(beanCoins<25)return; beanCoins-=25; upgrades.xpBoost++; updateUI(); }
 
-function buyQuality(){ if(beanCoins<15)return;
-beanCoins-=15; upgrades.quality++; updateUI(); }
-
-function buyLuck(){ if(beanCoins<20)return;
-beanCoins-=20; upgrades.luck++; updateUI(); }
-
-function buyXPBoost(){ if(beanCoins<25)return;
-beanCoins-=25; upgrades.xpBoost++; updateUI(); }
-
-// 💾 SAVE SYSTEM
+/* SAVE */
 function saveGame(){
-  localStorage.setItem("beanSave", JSON.stringify({
-    beanCoins, xp, level, upgrades
-  }));
-  alert("💾 saved bean reality");
+  localStorage.setItem("beanSave", JSON.stringify({beanCoins,xp,level,upgrades}));
+  alert("saved bean reality");
 }
 
-// load
 (function load(){
-  const save = JSON.parse(localStorage.getItem("beanSave"));
-  if(!save) return;
-
-  beanCoins = save.beanCoins;
-  xp = save.xp;
-  level = save.level;
-  upgrades = save.upgrades;
-
+  const s = JSON.parse(localStorage.getItem("beanSave"));
+  if(!s) return;
+  beanCoins = s.beanCoins;
+  xp = s.xp;
+  level = s.level;
+  upgrades = s.upgrades;
   updateUI();
 })();
 
+/* SHELL FIXED */
+function initShell(){
+  const input = document.getElementById("terminalInput");
+  const out = document.getElementById("terminalOutput");
 
-// 🖥️ TERMINAL SYSTEM (FIXED - NO MORE BREAKING PAGE)
-
-let shellUnlocked = false;
-
-function initShell() {
-
-  const terminalInput = document.getElementById("terminalInput");
-  const terminalOutput = document.getElementById("terminalOutput");
-
-  if (!terminalInput || !terminalOutput) return;
-
-  terminalInput.addEventListener("keydown", function(e){
-
-    if(e.key !== "Enter") return;
-
-    const cmd = terminalInput.value.trim();
-    terminalInput.value = "";
-
-    runCommand(cmd, terminalOutput);
-
-  });
-
-  function printTerminal(text){
-    terminalOutput.innerHTML += "<br>beans@beanland:~$ " + text;
+  function print(t){
+    out.innerHTML += "<br>beans@beanland:~$ " + t;
   }
 
-  function runCommand(cmd, out){
+  input.addEventListener("keydown",(e)=>{
+    if(e.key!=="Enter") return;
 
-    printTerminal(cmd);
+    const cmd = input.value.trim();
+    input.value="";
 
-    switch(cmd.toLowerCase()) {
+    print(cmd);
 
+    switch(cmd.toLowerCase()){
       case "help":
-        printTerminal("commands: help, neofetch, beanstats, sudo chaos, clear, rm reality");
+        print("help, neofetch, beanstats, sudo chaos, clear, rm reality");
         break;
-
       case "neofetch":
-        printTerminal("BeanOS v6.9 | Linux Wizard Edition 🐧");
+        print("BeanOS v6.9 🐧");
         break;
-
       case "beanstats":
-        printTerminal(`coins=${beanCoins} level=${level} xp=${xp}`);
+        print(`coins=${beanCoins} level=${level} xp=${xp}`);
         break;
-
       case "sudo chaos":
         chaosMode();
-        printTerminal("👹 chaos enabled");
+        print("chaos enabled");
         break;
-
       case "rm reality":
-        document.body.style.transform = "rotate(1deg)";
-        printTerminal("reality removed successfully");
+        document.body.style.transform="rotate(1deg)";
+        print("reality deleted");
         break;
-
       case "clear":
-        out.innerHTML = "beans@beanland:~$";
+        out.innerHTML="beans@beanland:~$";
         break;
-
       default:
-        printTerminal("command not found");
+        print("command not found");
     }
-  }
-
+  });
 }
 
-document.addEventListener("keydown", (e) => {
-
+/* SECRET UNLOCK */
+document.addEventListener("keydown",(e)=>{
   keyBuffer += e.key.toLowerCase();
+  if(keyBuffer.length>60) keyBuffer=keyBuffer.slice(-60);
 
-  if (keyBuffer.length > 60) {
-    keyBuffer = keyBuffer.slice(-60);
-  }
-
-  if (keyBuffer.includes("bean shell") && !shellUnlocked) {
-
+  if(keyBuffer.includes("bean shell") && !shellUnlocked){
     shellUnlocked = true;
-
-    document.getElementById("terminal").style.display = "block";
-
-    document.getElementById("title").innerText =
-      "🖥️ BEAN SHELL UNLOCKED";
-
-    alert("ACCESS GRANTED TO BEAN OS");
-
+    document.getElementById("terminal").style.display="block";
+    document.getElementById("title").innerText="shell unlocked";
     initShell();
   }
 });
@@ -374,5 +256,6 @@ updateUI();
 getMeme();
 
 </script>
+
 </body>
 </html>
