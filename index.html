@@ -18,9 +18,9 @@ h1 {
   text-shadow: 0 0 15px #00ff99;
 }
 
-#coins {
-  font-size: 22px;
-  margin: 10px;
+#coins, #level {
+  font-size: 20px;
+  margin: 5px;
 }
 
 #shop, #secret {
@@ -32,8 +32,8 @@ h1 {
 }
 
 button {
-  margin: 8px;
-  padding: 12px 18px;
+  margin: 6px;
+  padding: 10px 14px;
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -41,83 +41,95 @@ button {
   color: white;
 }
 
-button:hover {
-  transform: scale(1.05);
-}
-
 img {
   max-width: 90%;
-  max-height: 70vh;
+  max-height: 60vh;
   margin-top: 20px;
   border-radius: 15px;
 }
 
-#loading {
-  margin-top: 10px;
-  opacity: 0.7;
-}
+#loading { opacity: 0.7; }
 </style>
 </head>
 
 <body>
 
 <h1>WELCOME TO BEANLAND!!!</h1>
-<p>this website was built under emotional pressure</p>
 
-<div id="coins">🪙 Bean Coins: 0</div>
+<div id="coins">🪙 Coins: 0</div>
+<div id="level">📈 Level: 1 (XP: 0/100)</div>
 
-<!-- SHOP -->
 <div id="shop">
-  <h3>🛒 BEAN SHOP</h3>
+  <h3>🛒 Shop</h3>
   <button onclick="buySpeed()">⚡ Speed (10)</button>
   <button onclick="buyQuality()">🧪 Quality (15)</button>
   <button onclick="buyLuck()">🍀 Luck (20)</button>
+  <button onclick="buyXPBoost()">📈 XP Boost (25)</button>
 </div>
 
-<!-- SECRET -->
-<div id="secret" style="display:none;">
-  <h3>🔐 OS SECRET ZONE</h3>
-  <button onclick="osReward()">💰 Claim OS Bonus</button>
-  <button onclick="chaosOverclock()">👹 Chaos Overclock</button>
-  <p id="osmsg"></p>
-</div>
+<br>
 
 <button onclick="getMeme()">🎲 Meme</button>
 <button onclick="chaosMode()">👹 Chaos</button>
+<button onclick="saveGame()">💾 Save</button>
 
 <div id="loading"></div>
 <h2 id="title"></h2>
 <img id="meme">
 
 <script>
+
 let beanCoins = 0;
+let xp = 0;
+let level = 1;
+
+let upgrades = {
+  speed: 0,
+  quality: 0,
+  luck: 0,
+  xpBoost: 0
+};
+
 let recent = [];
 let chaos = null;
 
-let upgrades = { speed: 0, quality: 0, luck: 0 };
-
-function updateCoins() {
-  document.getElementById("coins").innerText =
-    "🪙 Bean Coins: " + beanCoins;
+function updateUI(){
+  document.getElementById("coins").innerText = "🪙 Coins: " + beanCoins;
+  document.getElementById("level").innerText =
+    `📈 Level: ${level} (XP: ${xp}/100)`;
 }
 
-function earn(ups) {
+function addXP(amount){
+  let gain = amount + upgrades.xpBoost * 2;
+
+  xp += gain;
+
+  if(xp >= 100){
+    xp -= 100;
+    level++;
+    beanCoins += 10 * level; // scaling reward
+  }
+
+  updateUI();
+}
+
+function earnCoins(ups){
   let gain = 1;
-  if (ups > 500) gain = 5;
-  else if (ups > 200) gain = 3;
-  else if (ups > 50) gain = 2;
+  if(ups > 500) gain = 5;
+  else if(ups > 200) gain = 3;
+  else if(ups > 50) gain = 2;
 
   beanCoins += gain;
-  updateCoins();
+  addXP(gain * 3);
+  updateUI();
 }
 
 function norm(s){return (s||"").toLowerCase().replace(/\s/g,"");}
 
-async function getMeme() {
-  const load = document.getElementById("loading");
-  load.innerText = "scanning memes...";
+async function getMeme(){
+  document.getElementById("loading").innerText = "fetching chaos...";
 
-  const subs = ["shitposting","dankmemes","memes","me_irl","funny"];
+  const subs = ["memes","dankmemes","shitposting","me_irl","funny"];
   const sub = subs[Math.floor(Math.random()*subs.length)];
 
   let data;
@@ -126,15 +138,13 @@ async function getMeme() {
     const res = await fetch(`https://meme-api.com/gimme/${sub}`);
     const d = await res.json();
 
-    const bad =
-      !d.url ||
-      d.nsfw ||
-      d.url.endsWith(".mp4") ||
-      recent.includes(d.url);
+    if(!d.url || d.nsfw) continue;
 
     data = d;
-    if(!bad) break;
+    break;
   }
+
+  if(!data) return;
 
   recent.push(data.url);
   if(recent.length>30) recent.shift();
@@ -142,8 +152,8 @@ async function getMeme() {
   document.getElementById("meme").src = data.url;
   document.getElementById("title").innerText = `[r/${sub}] ${data.title}`;
 
-  earn(data.ups || 0);
-  load.innerText = "";
+  earnCoins(data.ups || 0);
+  document.getElementById("loading").innerText = "";
 }
 
 function chaosMode(){
@@ -152,62 +162,44 @@ function chaosMode(){
   chaos = setInterval(getMeme, Math.max(200,1200-upgrades.speed*200));
 }
 
-function buySpeed(){
-  if(beanCoins<10)return;
-  beanCoins-=10; upgrades.speed++; updateCoins();
+// 🛒 UPGRADES
+function buySpeed(){ if(beanCoins<10)return;
+beanCoins-=10; upgrades.speed++; updateUI(); }
+
+function buyQuality(){ if(beanCoins<15)return;
+beanCoins-=15; upgrades.quality++; updateUI(); }
+
+function buyLuck(){ if(beanCoins<20)return;
+beanCoins-=20; upgrades.luck++; updateUI(); }
+
+function buyXPBoost(){ if(beanCoins<25)return;
+beanCoins-=25; upgrades.xpBoost++; updateUI(); }
+
+// 💾 SAVE SYSTEM
+function saveGame(){
+  localStorage.setItem("beanSave", JSON.stringify({
+    beanCoins, xp, level, upgrades
+  }));
+
+  alert("💾 saved bean reality");
 }
 
-function buyQuality(){
-  if(beanCoins<15)return;
-  beanCoins-=15; upgrades.quality++; updateCoins();
-}
+// load
+(function load(){
+  const save = JSON.parse(localStorage.getItem("beanSave"));
+  if(!save) return;
 
-function buyLuck(){
-  if(beanCoins<20)return;
-  beanCoins-=20; upgrades.luck++; updateCoins();
-}
+  beanCoins = save.beanCoins;
+  xp = save.xp;
+  level = save.level;
+  upgrades = save.upgrades;
 
-// OS detection
-function getOS(){
-  const ua=navigator.userAgent;
-  if(ua.includes("Linux")) return "linux";
-  if(ua.includes("Windows")) return "windows";
-  if(ua.includes("Mac")) return "mac";
-  return "unknown";
-}
+  updateUI();
+})();
 
-const os = getOS();
-let osBonus = 0;
-
-if(os==="linux"){
-  osBonus=50;
-  document.getElementById("secret").style.display="block";
-  document.getElementById("osmsg").innerText="🐧 Linux detected";
-}
-if(os==="windows"){
-  osBonus=20;
-  document.getElementById("secret").style.display="block";
-  document.getElementById("osmsg").innerText="🪟 Windows detected";
-}
-if(os==="mac"){
-  osBonus=30;
-  document.getElementById("secret").style.display="block";
-  document.getElementById("osmsg").innerText="🍎 Mac detected";
-}
-
-function osReward(){
-  beanCoins+=osBonus;
-  updateCoins();
-}
-
-function chaosOverclock(){
-  if(chaos)clearInterval(chaos);
-
-  let speed = os==="linux"?120:os==="mac"?180:250;
-  chaos = setInterval(getMeme, speed);
-}
-
+updateUI();
 getMeme();
+
 </script>
 
 </body>
