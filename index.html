@@ -93,6 +93,55 @@ let upgrades = {
 let recent = [];
 let chaos = null;
 
+/* 🐧 SECRET SYSTEM ADDED */
+let keyBuffer = "";
+let secretsUsed = {
+  sudo: false,
+  god: false,
+  fork: false,
+  love: false
+};
+
+document.addEventListener("keydown", (e) => {
+  keyBuffer += e.key.toLowerCase();
+  if (keyBuffer.length > 60) keyBuffer = keyBuffer.slice(-60);
+  checkSecrets();
+});
+
+function checkSecrets() {
+
+  if (!secretsUsed.sudo && keyBuffer.includes("sudo beans")) {
+    secretsUsed.sudo = true;
+    beanCoins += 100;
+    upgrades.speed += 2;
+    updateUI();
+    alert("🐧 sudo beans activated (+100 coins)");
+  }
+
+  if (!secretsUsed.god && keyBuffer.includes("bean god")) {
+    secretsUsed.god = true;
+    beanCoins += 250;
+    upgrades.luck += 5;
+    updateUI();
+    alert("👑 BEAN GOD MODE");
+  }
+
+  if (!secretsUsed.fork && keyBuffer.includes("fork bomb")) {
+    secretsUsed.fork = true;
+    chaosMode();
+    alert("💥 FORK BOMB ACTIVATED");
+  }
+
+  if (!secretsUsed.love && keyBuffer.includes("i love beans")) {
+    secretsUsed.love = true;
+    beanCoins += 10;
+    updateUI();
+    document.getElementById("title").innerText =
+      "💚 bean affection detected";
+  }
+}
+/* 🐧 END SECRET SYSTEM */
+
 function updateUI(){
   document.getElementById("coins").innerText = "🪙 Coins: " + beanCoins;
   document.getElementById("level").innerText =
@@ -107,7 +156,7 @@ function addXP(amount){
   if(xp >= 100){
     xp -= 100;
     level++;
-    beanCoins += 10 * level; // scaling reward
+    beanCoins += 10 * level;
   }
 
   updateUI();
@@ -180,7 +229,6 @@ function saveGame(){
   localStorage.setItem("beanSave", JSON.stringify({
     beanCoins, xp, level, upgrades
   }));
-
   alert("💾 saved bean reality");
 }
 
