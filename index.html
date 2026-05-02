@@ -90,7 +90,7 @@
 
   <script>
 
-    let lastMeme = "";
+    let recentMemes = [];
     let chaosInterval = null;
 
     const subreddits = [
@@ -119,13 +119,17 @@
           data = await response.json();
 
         } while (
-          data.url === lastMeme ||
-          data.nsfw === true ||
-          data.url.endsWith(".mp4") ||
-          data.url.endsWith(".gif")
-        );
+  recentMemes.includes(data.url) ||
+  data.nsfw === true ||
+  data.url.endsWith(".mp4") ||
+  data.url.endsWith(".gif")
+);
 
-        lastMeme = data.url;
+recentMemes.push(data.url);
+
+if (recentMemes.length > 20) {
+  recentMemes.shift();
+}
 
         document.getElementById("meme").src = data.url;
 
