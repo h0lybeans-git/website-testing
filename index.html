@@ -61,13 +61,8 @@
     }
 
     @media (max-width: 600px) {
-      h1 {
-        font-size: 38px;
-      }
-
-      button {
-        width: 90%;
-      }
+      h1 { font-size: 38px; }
+      button { width: 90%; }
     }
   </style>
 </head>
@@ -79,7 +74,6 @@
   <p>this website was built under emotional pressure</p>
 
   <button onclick="getMeme()">🎲 give meme</button>
-
   <button onclick="chaosMode()">👹 chaos mode</button>
 
   <div id="loading"></div>
@@ -90,36 +84,8 @@
 
 <script>
 
-  let recentMemes = [];
-  let chaosInterval = null;
-
-  const subreddits = [
-    "shitposting",
-    "dankmemes",
-    "fuckyouinparticular"
-  ];
-
-  function normalize(str) {
-    return (str || "").toLowerCase().replace(/\s/g, "");
-  }
-
-  <script>
-
 let recentMemes = [];
-
-const subreddits = [
-  "shitposting",
-  "dankmemes",
-  "fuckyouinparticular"
-];
-
-function normalize(str) {
-  return (str || "").toLowerCase().replace(/\s/g, "");
-}
-
-<script>
-
-let recentMemes = [];
+let chaosInterval = null;
 
 const subreddits = [
   "shitposting",
@@ -138,12 +104,12 @@ async function getMeme() {
 
   loading.innerText = "scanning meme quality...";
 
-  let data = null;
-
   try {
 
     const randomSub =
       subreddits[Math.floor(Math.random() * subreddits.length)];
+
+    let data;
 
     for (let attempts = 0; attempts < 5; attempts++) {
 
@@ -178,7 +144,10 @@ async function getMeme() {
     img.src = data.url;
 
     document.getElementById("title").innerText =
-      `[r/${randomSub}] ${data.title}`;
+      `[r/${randomMemes?.sub || "random"}] ${data.title}`;
+
+    document.getElementById("title").innerText =
+      `[meme] ${data.title}`;
 
   } catch (error) {
 
@@ -190,15 +159,25 @@ async function getMeme() {
       "fallback meme engaged (reality unstable)";
 
   } finally {
-
-    // THIS is what prevents “stuck forever”
     loading.innerText = "";
   }
 }
 
-</script>
+function chaosMode() {
 
-</script>
+  if (chaosInterval) {
+    clearInterval(chaosInterval);
+    chaosInterval = null;
+    alert("chaos contained");
+    return;
+  }
+
+  alert("CHAOS MODE ACTIVATED");
+
+  chaosInterval = setInterval(getMeme, 1200);
+}
+
+getMeme();
 
 </script>
 
