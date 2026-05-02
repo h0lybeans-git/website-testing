@@ -131,11 +131,10 @@
         normalize(data.title).length > 120;
 
       const qualityBad =
-        data.ups < 500 ||           // too unpopular
-        data.upvote_ratio < 0.8;    // controversial / mid
+        data.ups < 200 ||           // too unpopular
 
     } while (
-      attempts < 10 && (
+      attempts < 5 && (
         recentMemes.some(m =>
           m.url === data.url ||
           normalize(m.title) === normalize(data.title)
