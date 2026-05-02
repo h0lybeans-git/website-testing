@@ -103,79 +103,95 @@
     return (str || "").toLowerCase().replace(/\s/g, "");
   }
 
-  async function getMeme() {
+  <script>
 
-    const loading = document.getElementById("loading");
-    loading.innerText = "scanning meme quality...";
+let recentMemes = [];
 
-    try {
+const subreddits = [
+  "shitposting",
+  "dankmemes",
+  "fuckyouinparticular"
+];
 
-      const randomSub =
-        subreddits[Math.floor(Math.random() * subreddits.length)];
+function normalize(str) {
+  return (str || "").toLowerCase().replace(/\s/g, "");
+}
 
-      let data;
-      let attempts = 0;
+async function getMeme() {
 
-      do {
+  const loading = document.getElementById("loading");
+  loading.innerText = "scanning meme quality...";
 
-        const response =
-          await fetch(`https://meme-api.com/gimme/${randomSub}`);
+  try {
 
-        data = await response.json();
+    const randomSub =
+      subreddits[Math.floor(Math.random() * subreddits.length)];
 
-        attempts++;
+    let data;
+    let attempts = 0;
 
-        const titleBad =
-          normalize(data.title).length < 5 ||
-          normalize(data.title).length > 120;
+    while (attempts < 5) {
 
-        const qualityBad =
-          data.ups < 200;
+      const response =
+        await fetch(`https://meme-api.com/gimme/${randomSub}`);
 
-        if (attempts > 5) break;
+      data = await response.json();
 
-      } while (
-        attempts < 5 && (
-          recentMemes.some(m =>
-            m.url === data.url ||
-            normalize(m.title) === normalize(data.title)
-          ) ||
-          data.nsfw === true ||
-          data.url.endsWith(".mp4") ||
-          data.url.endsWith(".gif") ||
-          titleBad ||
-          qualityBad
-        )
-      );
+      attempts++;
 
-      recentMemes.push({
-        url: data.url,
-        title: data.title
-      });
+      const title = normalize(data.title);
 
-      if (recentMemes.length > 30) {
-        recentMemes.shift();
+      const titleBad =
+        title.length < 5 || title.length > 120;
+
+      const qualityBad =
+        (data.ups || 0) < 150;
+
+      const isRepeat =
+        recentMemes.some(m => m.url === data.url);
+
+      if (
+        !data.nsfw &&
+        !data.url.endsWith(".mp4") &&
+        !data.url.endsWith(".gif") &&
+        !titleBad &&
+        !qualityBad &&
+        !isRepeat
+      ) {
+        break;
       }
 
-      document.getElementById("meme").src = data.url;
-
-      document.getElementById("title").innerText =
-        `[r/${randomSub}] ${data.title}`;
-
-    } catch (error) {
-
-      console.error(error);
-
-      document.getElementById("meme").src =
-        "https://i.imgflip.com/1ur9b0.jpg";
-
-      document.getElementById("title").innerText =
-        "meme system had a breakdown";
-
-    } finally {
-      loading.innerText = "";
     }
+
+    recentMemes.push({
+      url: data.url,
+      title: data.title
+    });
+
+    if (recentMemes.length > 30) {
+      recentMemes.shift();
+    }
+
+    document.getElementById("meme").src = data.url;
+
+    document.getElementById("title").innerText =
+      `[r/${randomSub}] ${data.title}`;
+
+  } catch (error) {
+
+    console.error(error);
+
+    document.getElementById("meme").src =
+      "https://i.imgflip.com/1ur9b0.jpg";
+
+    document.getElementById("title").innerText =
+      "fallback meme engaged (reality unstable)";
   }
+
+  loading.innerText = "";
+}
+
+</script>
 
 </script>
 
