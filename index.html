@@ -55,6 +55,20 @@
       font-size: 22px;
     }
 
+    /* 🛒 SHOP */
+    #shop {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 15px;
+      background: rgba(255,255,255,0.05);
+      display: inline-block;
+      box-shadow: 0 0 20px rgba(0,255,150,0.1);
+    }
+
+    #shop h3 {
+      margin-bottom: 10px;
+    }
+
     @media (max-width: 600px) {
       h1 { font-size: 38px; }
       button { width: 90%; }
@@ -69,12 +83,17 @@
 
   <div id="coins">🪙 Bean Coins: 0</div>
 
+  <!-- 🛒 SHOP -->
+  <div id="shop">
+    <h3>🛒 BEAN SHOP</h3>
+
+    <button onclick="buySpeed()">⚡ Faster Memes (10🪙)</button>
+    <button onclick="buyQuality()">🧪 Better Memes (15🪙)</button>
+    <button onclick="buyLuck()">🍀 Luck Boost (20🪙)</button>
+  </div>
+
   <button onclick="getMeme()">🎲 give meme</button>
   <button onclick="chaosMode()">👹 chaos mode</button>
-
-  <button onclick="buySpeed()">⚡ faster memes (10🪙)</button>
-  <button onclick="buyQuality()">🧪 better memes (15🪙)</button>
-  <button onclick="buyLuck()">🍀 luck boost (20🪙)</button>
 
   <div id="loading"></div>
 
@@ -155,7 +174,6 @@ async function getMeme() {
 
       let boostedUps = candidate.ups || 0;
 
-      // luck upgrade = occasional fake boost
       if (upgrades.luck > 0 && Math.random() < upgrades.luck * 0.05) {
         boostedUps += 1000;
       }
@@ -176,7 +194,6 @@ async function getMeme() {
         data.ups = boostedUps;
         break;
       }
-
     }
 
     if (!data || !data.url) throw new Error("No valid meme found");
