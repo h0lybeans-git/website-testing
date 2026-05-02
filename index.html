@@ -20,14 +20,9 @@
       text-shadow: 0 0 15px #00ff99;
     }
 
-    p {
-      opacity: 0.8;
-    }
+    p { opacity: 0.8; }
 
-    #title {
-      margin-top: 20px;
-      padding: 10px;
-    }
+    #title { margin-top: 20px; padding: 10px; }
 
     img {
       max-width: 90%;
@@ -51,13 +46,13 @@
       box-shadow: 0 0 15px rgba(0,255,150,0.4);
     }
 
-    button:hover {
-      transform: scale(1.05);
-    }
+    button:hover { transform: scale(1.05); }
 
-    #loading {
-      margin-top: 15px;
-      opacity: 0.7;
+    #loading { margin-top: 15px; opacity: 0.7; }
+
+    #coins {
+      margin-top: 10px;
+      font-size: 22px;
     }
 
     @media (max-width: 600px) {
@@ -70,11 +65,16 @@
 <body>
 
   <h1>WELCOME TO BEANLAND!!!</h1>
-
   <p>this website was built under emotional pressure</p>
+
+  <div id="coins">🪙 Bean Coins: 0</div>
 
   <button onclick="getMeme()">🎲 give meme</button>
   <button onclick="chaosMode()">👹 chaos mode</button>
+
+  <button onclick="buySpeed()">⚡ faster memes (10🪙)</button>
+  <button onclick="buyQuality()">🧪 better memes (15🪙)</button>
+  <button onclick="buyLuck()">🍀 luck boost (20🪙)</button>
 
   <div id="loading"></div>
 
@@ -86,6 +86,14 @@
 
 let recentMemes = [];
 let chaosInterval = null;
+
+let beanCoins = 0;
+
+let upgrades = {
+  speed: 0,
+  quality: 0,
+  luck: 0
+};
 
 const subreddits = [
   "shitposting",
@@ -104,6 +112,22 @@ const subreddits = [
 
 function normalize(str) {
   return (str || "").toLowerCase().replace(/\s/g, "");
+}
+
+function updateCoins() {
+  document.getElementById("coins").innerText =
+    `🪙 Bean Coins: ${beanCoins}`;
+}
+
+function earnCoins(ups) {
+  let gain = 1;
+
+  if (ups > 500) gain = 5;
+  else if (ups > 200) gain = 3;
+  else if (ups > 50) gain = 2;
+
+  beanCoins += gain;
+  updateCoins();
 }
 
 async function getMeme() {
@@ -129,6 +153,13 @@ async function getMeme() {
 
       const title = normalize(candidate.title || "");
 
+      let boostedUps = candidate.ups || 0;
+
+      // luck upgrade = occasional fake boost
+      if (upgrades.luck > 0 && Math.random() < upgrades.luck * 0.05) {
+        boostedUps += 1000;
+      }
+
       const isBad =
         !candidate.url ||
         candidate.nsfw === true ||
@@ -136,20 +167,21 @@ async function getMeme() {
         candidate.url.endsWith(".gif") ||
         title.length < 3 ||
         title.length > 150 ||
-        (candidate.ups || 0) < 8 ||
+        boostedUps < (8 + upgrades.quality * 5) ||
         recentMemes.some(m => m.url === candidate.url);
 
       data = candidate;
 
-      if (!isBad) break;
+      if (!isBad) {
+        data.ups = boostedUps;
+        break;
+      }
+
     }
 
     if (!data || !data.url) throw new Error("No valid meme found");
 
-    recentMemes.push({
-      url: data.url,
-      title: data.title
-    });
+    recentMemes.push({ url: data.url, title: data.title });
 
     if (recentMemes.length > 30) recentMemes.shift();
 
@@ -157,6 +189,8 @@ async function getMeme() {
 
     document.getElementById("title").innerText =
       `[r/${randomSub}] ${data.title}`;
+
+    earnCoins(data.ups || 0);
 
   } catch (error) {
 
@@ -183,7 +217,33 @@ function chaosMode() {
 
   alert("CHAOS MODE ACTIVATED");
 
-  chaosInterval = setInterval(getMeme, 1200);
+  chaosInterval = setInterval(
+    getMeme,
+    Math.max(300, 1200 - upgrades.speed * 200)
+  );
+}
+
+// 🛠 UPGRADES
+
+function buySpeed() {
+  if (beanCoins < 10) return alert("not enough beans");
+  beanCoins -= 10;
+  upgrades.speed++;
+  updateCoins();
+}
+
+function buyQuality() {
+  if (beanCoins < 15) return alert("not enough beans");
+  beanCoins -= 15;
+  upgrades.quality++;
+  updateCoins();
+}
+
+function buyLuck() {
+  if (beanCoins < 20) return alert("not enough beans");
+  beanCoins -= 20;
+  upgrades.luck++;
+  updateCoins();
 }
 
 getMeme();
