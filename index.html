@@ -120,17 +120,18 @@ async function getMeme() {
 
       if (!data || !data.url) continue;
 
-      const title = normalize(data.title || "");
+     const title = normalize(data.title || "");
 
-      const isBad =
-        data.nsfw ||
-        data.url.endsWith(".mp4") ||
-        data.url.endsWith(".gif") ||
-        title.length < 5 ||
-        title.length > 120 ||
-        (data.ups || 0) < 150 ||
-        recentMemes.some(m => m.url === data.url);
-
+const isBad =
+  !data.url ||
+  data.nsfw === true ||
+  data.url.endsWith(".mp4") ||
+  data.url.endsWith(".gif") ||
+  title.length < 3 ||
+  title.length > 150 ||
+  (data.ups || 0) < 50 ||
+  recentMemes.some(m => m.url === data.url);
+      
       if (!isBad) break;
 
     }
