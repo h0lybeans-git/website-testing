@@ -282,11 +282,71 @@ function saveGame(){
 })();
 
 
-// 🖥️ TERMINAL SYSTEM
+// 🖥️ TERMINAL SYSTEM (FIXED - NO MORE BREAKING PAGE)
 
 let shellUnlocked = false;
 
-// unlock shell secret
+function initShell() {
+
+  const terminalInput = document.getElementById("terminalInput");
+  const terminalOutput = document.getElementById("terminalOutput");
+
+  if (!terminalInput || !terminalOutput) return;
+
+  terminalInput.addEventListener("keydown", function(e){
+
+    if(e.key !== "Enter") return;
+
+    const cmd = terminalInput.value.trim();
+    terminalInput.value = "";
+
+    runCommand(cmd, terminalOutput);
+
+  });
+
+  function printTerminal(text){
+    terminalOutput.innerHTML += "<br>beans@beanland:~$ " + text;
+  }
+
+  function runCommand(cmd, out){
+
+    printTerminal(cmd);
+
+    switch(cmd.toLowerCase()) {
+
+      case "help":
+        printTerminal("commands: help, neofetch, beanstats, sudo chaos, clear, rm reality");
+        break;
+
+      case "neofetch":
+        printTerminal("BeanOS v6.9 | Linux Wizard Edition 🐧");
+        break;
+
+      case "beanstats":
+        printTerminal(`coins=${beanCoins} level=${level} xp=${xp}`);
+        break;
+
+      case "sudo chaos":
+        chaosMode();
+        printTerminal("👹 chaos enabled");
+        break;
+
+      case "rm reality":
+        document.body.style.transform = "rotate(1deg)";
+        printTerminal("reality removed successfully");
+        break;
+
+      case "clear":
+        out.innerHTML = "beans@beanland:~$";
+        break;
+
+      default:
+        printTerminal("command not found");
+    }
+  }
+
+}
+
 document.addEventListener("keydown", (e) => {
 
   keyBuffer += e.key.toLowerCase();
@@ -306,106 +366,13 @@ document.addEventListener("keydown", (e) => {
 
     alert("ACCESS GRANTED TO BEAN OS");
 
+    initShell();
   }
 });
-
-const terminalInput =
-  document.getElementById("terminalInput");
-
-const terminalOutput =
-  document.getElementById("terminalOutput");
-
-terminalInput.addEventListener("keydown", function(e){
-
-  if(e.key !== "Enter") return;
-
-  const cmd = terminalInput.value.trim();
-
-  runCommand(cmd);
-
-  terminalInput.value = "";
-
-});
-
-function printTerminal(text){
-
-  terminalOutput.innerHTML +=
-    "<br>beans@beanland:~$ " + text;
-
-}
-
-function runCommand(cmd){
-
-  printTerminal(cmd);
-
-  switch(cmd.toLowerCase()) {
-
-    case "help":
-
-      printTerminal(
-        "commands: help, neofetch, beanstats, sudo chaos, clear, rm reality"
-      );
-
-      break;
-
-    case "neofetch":
-
-      printTerminal(
-        "BeanOS v6.9 | Linux Wizard Edition 🐧"
-      );
-
-      break;
-
-    case "beanstats":
-
-      printTerminal(
-        `coins=${beanCoins} level=${level} xp=${xp}`
-      );
-
-      break;
-
-    case "sudo chaos":
-
-      chaosMode();
-
-      printTerminal(
-        "👹 chaos enabled"
-      );
-
-      break;
-
-    case "rm reality":
-
-      document.body.style.transform =
-        "rotate(1deg)";
-
-      printTerminal(
-        "reality removed successfully"
-      );
-
-      break;
-
-    case "clear":
-
-      terminalOutput.innerHTML =
-        "beans@beanland:~$";
-
-      break;
-
-    default:
-
-      printTerminal(
-        "command not found"
-      );
-  }
-}
 
 updateUI();
 getMeme();
 
- 
-
 </script>
-
 </body>
 </html>
