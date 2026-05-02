@@ -245,8 +245,163 @@ function saveGame(){
   updateUI();
 })();
 
+
+// 🖥️ TERMINAL SYSTEM
+
+let shellUnlocked = false;
+
+// unlock shell secret
+document.addEventListener("keydown", (e) => {
+
+  keyBuffer += e.key.toLowerCase();
+
+  if (keyBuffer.length > 60) {
+    keyBuffer = keyBuffer.slice(-60);
+  }
+
+  if (keyBuffer.includes("bean shell") && !shellUnlocked) {
+
+    shellUnlocked = true;
+
+    document.getElementById("terminal").style.display = "block";
+
+    document.getElementById("title").innerText =
+      "🖥️ BEAN SHELL UNLOCKED";
+
+    alert("ACCESS GRANTED TO BEAN OS");
+
+  }
+});
+
+const terminalInput =
+  document.getElementById("terminalInput");
+
+const terminalOutput =
+  document.getElementById("terminalOutput");
+
+terminalInput.addEventListener("keydown", function(e){
+
+  if(e.key !== "Enter") return;
+
+  const cmd = terminalInput.value.trim();
+
+  runCommand(cmd);
+
+  terminalInput.value = "";
+
+});
+
+function printTerminal(text){
+
+  terminalOutput.innerHTML +=
+    "<br>beans@beanland:~$ " + text;
+
+}
+
+function runCommand(cmd){
+
+  printTerminal(cmd);
+
+  switch(cmd.toLowerCase()) {
+
+    case "help":
+
+      printTerminal(
+        "commands: help, neofetch, beanstats, sudo chaos, clear, rm reality"
+      );
+
+      break;
+
+    case "neofetch":
+
+      printTerminal(
+        "BeanOS v6.9 | Linux Wizard Edition 🐧"
+      );
+
+      break;
+
+    case "beanstats":
+
+      printTerminal(
+        `coins=${beanCoins} level=${level} xp=${xp}`
+      );
+
+      break;
+
+    case "sudo chaos":
+
+      chaosMode();
+
+      printTerminal(
+        "👹 chaos enabled"
+      );
+
+      break;
+
+    case "rm reality":
+
+      document.body.style.transform =
+        "rotate(1deg)";
+
+      printTerminal(
+        "reality removed successfully"
+      );
+
+      break;
+
+    case "clear":
+
+      terminalOutput.innerHTML =
+        "beans@beanland:~$";
+
+      break;
+
+    default:
+
+      printTerminal(
+        "command not found"
+      );
+  }
+}
+
 updateUI();
 getMeme();
+
+  <div id="terminal" style="
+display:none;
+margin-top:20px;
+padding:20px;
+background:black;
+color:#00ff66;
+font-family:monospace;
+text-align:left;
+border-radius:15px;
+max-width:800px;
+margin-left:auto;
+margin-right:auto;
+">
+
+<div id="terminalOutput">
+beans@beanland:~$
+</div>
+
+<input
+id="terminalInput"
+type="text"
+placeholder="type command..."
+style="
+width:90%;
+margin-top:10px;
+background:#111;
+color:#00ff66;
+border:none;
+padding:10px;
+font-family:monospace;
+outline:none;
+"
+/>
+
+</div>
 
 </script>
 
