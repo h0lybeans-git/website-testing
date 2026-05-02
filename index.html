@@ -129,7 +129,7 @@ const isBad =
   data.url.endsWith(".gif") ||
   title.length < 3 ||
   title.length > 150 ||
-  (data.ups || 0) < 50 ||
+  (data.ups || 0) < 8 ||
   recentMemes.some(m => m.url === data.url);
       
       if (!isBad) break;
@@ -145,10 +145,7 @@ const isBad =
     img.src = data.url;
 
     document.getElementById("title").innerText =
-      `[r/${randomMemes?.sub || "random"}] ${data.title}`;
-
-    document.getElementById("title").innerText =
-      `[meme] ${data.title}`;
+  `[r/${randomSub}] ${data.title}`;
 
   } catch (error) {
 
