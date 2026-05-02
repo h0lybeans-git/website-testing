@@ -117,62 +117,65 @@ function normalize(str) {
   return (str || "").toLowerCase().replace(/\s/g, "");
 }
 
+<script>
+
+let recentMemes = [];
+
+const subreddits = [
+  "shitposting",
+  "dankmemes",
+  "fuckyouinparticular"
+];
+
+function normalize(str) {
+  return (str || "").toLowerCase().replace(/\s/g, "");
+}
+
 async function getMeme() {
 
   const loading = document.getElementById("loading");
+  const img = document.getElementById("meme");
+
   loading.innerText = "scanning meme quality...";
+
+  let data = null;
 
   try {
 
     const randomSub =
       subreddits[Math.floor(Math.random() * subreddits.length)];
 
-    let data;
-    let attempts = 0;
-
-    while (attempts < 5) {
+    for (let attempts = 0; attempts < 5; attempts++) {
 
       const response =
         await fetch(`https://meme-api.com/gimme/${randomSub}`);
 
       data = await response.json();
 
-      attempts++;
+      if (!data || !data.url) continue;
 
-      const title = normalize(data.title);
+      const title = normalize(data.title || "");
 
-      const titleBad =
-        title.length < 5 || title.length > 120;
-
-      const qualityBad =
-        (data.ups || 0) < 150;
-
-      const isRepeat =
+      const isBad =
+        data.nsfw ||
+        data.url.endsWith(".mp4") ||
+        data.url.endsWith(".gif") ||
+        title.length < 5 ||
+        title.length > 120 ||
+        (data.ups || 0) < 150 ||
         recentMemes.some(m => m.url === data.url);
 
-      if (
-        !data.nsfw &&
-        !data.url.endsWith(".mp4") &&
-        !data.url.endsWith(".gif") &&
-        !titleBad &&
-        !qualityBad &&
-        !isRepeat
-      ) {
-        break;
-      }
+      if (!isBad) break;
 
     }
 
-    recentMemes.push({
-      url: data.url,
-      title: data.title
-    });
+    if (!data || !data.url) throw new Error("No valid meme found");
 
-    if (recentMemes.length > 30) {
-      recentMemes.shift();
-    }
+    recentMemes.push({ url: data.url, title: data.title });
 
-    document.getElementById("meme").src = data.url;
+    if (recentMemes.length > 30) recentMemes.shift();
+
+    img.src = data.url;
 
     document.getElementById("title").innerText =
       `[r/${randomSub}] ${data.title}`;
@@ -181,15 +184,19 @@ async function getMeme() {
 
     console.error(error);
 
-    document.getElementById("meme").src =
-      "https://i.imgflip.com/1ur9b0.jpg";
+    img.src = "https://i.imgflip.com/1ur9b0.jpg";
 
     document.getElementById("title").innerText =
       "fallback meme engaged (reality unstable)";
-  }
 
-  loading.innerText = "";
+  } finally {
+
+    // THIS is what prevents “stuck forever”
+    loading.innerText = "";
+  }
 }
+
+</script>
 
 </script>
 
