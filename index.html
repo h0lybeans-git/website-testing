@@ -77,6 +77,42 @@ img {
 <h2 id="title"></h2>
 <img id="meme">
 
+  <div id="terminal" style="
+display:none;
+margin-top:20px;
+padding:20px;
+background:black;
+color:#00ff66;
+font-family:monospace;
+text-align:left;
+border-radius:15px;
+max-width:800px;
+margin-left:auto;
+margin-right:auto;
+">
+
+<div id="terminalOutput">
+beans@beanland:~$
+</div>
+
+<input
+id="terminalInput"
+type="text"
+placeholder="type command..."
+style="
+width:90%;
+margin-top:10px;
+background:#111;
+color:#00ff66;
+border:none;
+padding:10px;
+font-family:monospace;
+outline:none;
+"
+/>
+
+</div>
+
 <script>
 
 let beanCoins = 0;
@@ -367,41 +403,7 @@ function runCommand(cmd){
 updateUI();
 getMeme();
 
-  <div id="terminal" style="
-display:none;
-margin-top:20px;
-padding:20px;
-background:black;
-color:#00ff66;
-font-family:monospace;
-text-align:left;
-border-radius:15px;
-max-width:800px;
-margin-left:auto;
-margin-right:auto;
-">
-
-<div id="terminalOutput">
-beans@beanland:~$
-</div>
-
-<input
-id="terminalInput"
-type="text"
-placeholder="type command..."
-style="
-width:90%;
-margin-top:10px;
-background:#111;
-color:#00ff66;
-border:none;
-padding:10px;
-font-family:monospace;
-outline:none;
-"
-/>
-
-</div>
+ 
 
 </script>
 
