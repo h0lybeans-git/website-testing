@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,6 +12,7 @@ body {
   text-align: center;
   font-family: Arial, sans-serif;
   padding: 30px;
+  transition: transform 0.5s ease, filter 0.5s ease;
 }
 
 h1 {
@@ -60,6 +62,8 @@ img {
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 #terminalInput {
@@ -71,6 +75,127 @@ img {
   padding: 10px;
   font-family: monospace;
   outline: none;
+}
+
+/* ── TOASTS ── */
+#toastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: #0d1117;
+  border: 1px solid #00ff99;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-family: monospace;
+  font-size: 13px;
+  animation: toastIn 0.3s ease, toastOut 0.4s ease 2.6s forwards;
+  box-shadow: 0 0 12px #00ff9933;
+  text-align: left;
+  min-width: 200px;
+}
+
+@keyframes toastIn {
+  from { transform: translateX(130px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+@keyframes toastOut {
+  to { transform: translateX(130px); opacity: 0; }
+}
+
+/* ── BEAN RAIN ── */
+.beanRain {
+  position: fixed;
+  font-size: 28px;
+  pointer-events: none;
+  animation: fall linear forwards;
+  z-index: 8888;
+  top: -40px;
+}
+
+@keyframes fall {
+  from { transform: translateY(0) rotate(0deg);   opacity: 1; }
+  to   { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* ── MATRIX ── */
+#matrixCanvas {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 7777;
+  pointer-events: none;
+}
+
+/* ── ACHIEVEMENTS BUTTON ── */
+#achieveBtn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #111;
+  border: 1px solid #00ff99;
+  color: #00ff99;
+  font-family: monospace;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 6000;
+  font-size: 13px;
+}
+
+#achievePanel {
+  display: none;
+  position: fixed;
+  bottom: 60px;
+  right: 20px;
+  background: #0d1117;
+  border: 1px solid #00ff99;
+  border-radius: 12px;
+  padding: 16px;
+  z-index: 6001;
+  max-height: 420px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 13px;
+  text-align: left;
+  min-width: 250px;
+  box-shadow: 0 0 20px #00ff9922;
+}
+
+#achievePanel h3 {
+  margin: 0 0 10px;
+  color: #00ff99;
+  font-size: 15px;
+}
+
+.achieveRow {
+  padding: 7px 0;
+  border-bottom: 1px solid #ffffff11;
+  color: #555;
+}
+
+.achieveRow.done {
+  color: white;
+}
+
+.achieveRow .achDesc {
+  font-size: 11px;
+  color: #777;
+  margin-top: 2px;
+}
+
+.achieveRow.done .achDesc {
+  color: #aaa;
 }
 </style>
 </head>
@@ -100,162 +225,408 @@ img {
 <img id="meme">
 <div id="loading"></div>
 
-<!-- SHELL -->
+<canvas id="matrixCanvas"></canvas>
+
 <div id="terminal">
   <div id="terminalOutput">beans@beanland:~$</div>
   <input id="terminalInput" placeholder="type command..." />
 </div>
 
+<div id="toastContainer"></div>
+
+<button id="achieveBtn" onclick="toggleAchievements()">🏆 0/11</button>
+<div id="achievePanel">
+  <h3>🏆 Achievements</h3>
+  <div id="achieveList"></div>
+</div>
+
 <script>
 
+// ── STATE ─────────────────────────────────────────────────────────────────
 let beanCoins = 0;
-let xp = 0;
-let level = 1;
-
-let upgrades = { speed:0, quality:0, luck:0, xpBoost:0 };
-let recent = [];
-let chaos = null;
-
+let xp        = 0;
+let level     = 1;
+let upgrades  = { speed:0, quality:0, luck:0, xpBoost:0 };
+let chaos         = null;
 let shellUnlocked = false;
-let keyBuffer = "";
+let keyBuffer     = "";
+let rmCount       = 0;
+let memeCount     = 0;
+let matrixInterval = null;
 
-function updateUI(){
-  document.getElementById("coins").innerText = "🪙 Coins: " + beanCoins;
-  document.getElementById("level").innerText =
-    `📈 Level: ${level} (XP: ${xp}/100)`;
+// ── ACHIEVEMENTS ──────────────────────────────────────────────────────────
+const ACHIEVEMENTS = [
+  { id: "first_coin",        label: "🪙 First Bean Coin",        desc: "economic domination begins"              },
+  { id: "spender",           label: "💸 Bean Economy",            desc: "bought something from the shop"          },
+  { id: "chaos_enjoyer",     label: "👹 Chaos Enjoyer",           desc: "unleashed the chaos"                     },
+  { id: "shell_hacker",      label: "💻 Shell Hacker",            desc: "found the secret terminal"               },
+  { id: "reality_deleted",   label: "🗑️ Reality Deleted",         desc: "ran rm -rf / for the first time"         },
+  { id: "reality_shredded",  label: "💀 rm -rf god",              desc: "deleted reality 5 times"                 },
+  { id: "meme_lord",         label: "🐸 Meme Lord",               desc: "fetched 10 memes"                        },
+  { id: "level5",            label: "📈 Level 5 Bean",            desc: "reached level 5"                         },
+  { id: "konami",            label: "🎮 Konami Bean",             desc: "↑↑↓↓←→←→🫘"                             },
+  { id: "broke",             label: "😭 Broke Bean",              desc: "tried to buy something you can't afford" },
+  { id: "hidden_bean",       label: "🫘 Hidden Bean",             desc: "cat .hidden_bean"                        },
+];
+
+let unlockedAchievements = new Set();
+
+function unlock(id) {
+  if (unlockedAchievements.has(id)) return;
+  unlockedAchievements.add(id);
+  const a = ACHIEVEMENTS.find(x => x.id === id);
+  if (!a) return;
+  showToast(`🏆 Achievement Unlocked!|${a.label}|${a.desc}`);
+  renderAchievements();
 }
 
-function addXP(a){
+function showToast(msg) {
+  const container = document.getElementById("toastContainer");
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  const [line1, line2, line3] = msg.split("|");
+  toast.innerHTML =
+    `<b>${line1}</b>` +
+    (line2 ? `<br>${line2}` : "") +
+    (line3 ? `<br><span style="color:#aaa;font-size:11px">${line3}</span>` : "");
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3100);
+}
+
+function toggleAchievements() {
+  const panel = document.getElementById("achievePanel");
+  panel.style.display = panel.style.display === "block" ? "none" : "block";
+  renderAchievements();
+}
+
+function renderAchievements() {
+  const list = document.getElementById("achieveList");
+  list.innerHTML = ACHIEVEMENTS.map(a => {
+    const done = unlockedAchievements.has(a.id);
+    return `<div class="achieveRow ${done ? "done" : ""}">
+      ${done ? a.label : "🔒 ???"}
+      <div class="achDesc">${done ? a.desc : "keep playing"}</div>
+    </div>`;
+  }).join("");
+  document.getElementById("achieveBtn").textContent =
+    `🏆 ${unlockedAchievements.size}/${ACHIEVEMENTS.length}`;
+}
+
+// ── UI ────────────────────────────────────────────────────────────────────
+function updateUI() {
+  document.getElementById("coins").innerText = "🪙 Coins: " + beanCoins;
+  document.getElementById("level").innerText = `📈 Level: ${level} (XP: ${xp}/100)`;
+}
+
+function addXP(a) {
   xp += a + upgrades.xpBoost;
-  if(xp >= 100){
+  if (xp >= 100) {
     xp -= 100;
     level++;
     beanCoins += 10 * level;
+    showToast(`📈 Level Up! Now level ${level}|+${10*level} bonus coins`);
+    if (level >= 5) unlock("level5");
   }
   updateUI();
 }
 
-function earnCoins(ups){
-  let g = ups > 500 ? 5 : ups > 200 ? 3 : ups > 50 ? 2 : 1;
+function earnCoins(ups) {
+  const g = ups > 500 ? 5 : ups > 200 ? 3 : ups > 50 ? 2 : 1;
+  const wasBroke = beanCoins === 0;
   beanCoins += g;
   addXP(g * 3);
+  if (wasBroke) unlock("first_coin");
+  updateUI();
+  memeCount++;
+  if (memeCount >= 10) unlock("meme_lord");
+}
+
+// ── SHOP ──────────────────────────────────────────────────────────────────
+function tryBuy(cost, fn) {
+  if (beanCoins < cost) { unlock("broke"); return; }
+  beanCoins -= cost;
+  fn();
+  unlock("spender");
   updateUI();
 }
 
-/* MEME */
-async function getMeme(){
+function buySpeed()   { tryBuy(10, () => upgrades.speed++);   }
+function buyQuality() { tryBuy(15, () => upgrades.quality++); }
+function buyLuck()    { tryBuy(20, () => upgrades.luck++);    }
+function buyXPBoost() { tryBuy(25, () => upgrades.xpBoost++); }
+
+// ── MEME ──────────────────────────────────────────────────────────────────
+async function getMeme() {
   document.getElementById("loading").innerText = "fetching chaos...";
-
   const subs = ["memes","dankmemes","shitposting","me_irl","funny"];
-  const sub = subs[Math.floor(Math.random()*subs.length)];
+  const sub  = subs[Math.floor(Math.random() * subs.length)];
 
-  let data;
-
-  for(let i=0;i<5;i++){
-    const r = await fetch(`https://meme-api.com/gimme/${sub}`);
+  let post;
+  try {
+    const r = await fetch(`https://www.reddit.com/r/${sub}/hot.json?limit=50`);
     const d = await r.json();
-    if(!d.url || d.nsfw) continue;
-    data = d;
-    break;
+    const posts = d.data.children.map(c => c.data).filter(p =>
+      !p.over_18 && !p.is_video &&
+      (p.post_hint === "image" || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(p.url))
+    );
+    if (posts.length > 0) post = posts[Math.floor(Math.random() * posts.length)];
+  } catch (e) {
+    document.getElementById("loading").innerText = "reddit blocked it — open via localhost instead of file://";
+    return;
   }
 
-  if(!data) return;
+  if (!post) {
+    document.getElementById("loading").innerText = "no images found, try again";
+    return;
+  }
 
-  document.getElementById("meme").src = data.url;
-  document.getElementById("title").innerText = `[r/${sub}] ${data.title}`;
-
-  earnCoins(data.ups || 0);
+  document.getElementById("meme").src = post.url;
+  document.getElementById("title").innerText = `[r/${sub}] ${post.title}`;
+  earnCoins(post.ups || 0);
   document.getElementById("loading").innerText = "";
 }
 
-function chaosMode(){
-  if(chaos){clearInterval(chaos); chaos=null; return;}
-  chaos = setInterval(getMeme, 1200 - upgrades.speed*200);
+function chaosMode() {
+  if (chaos) { clearInterval(chaos); chaos = null; return; }
+  chaos = setInterval(getMeme, 1200 - upgrades.speed * 200);
+  unlock("chaos_enjoyer");
 }
 
-/* SHOP */
-function buySpeed(){ if(beanCoins<10)return; beanCoins-=10; upgrades.speed++; updateUI(); }
-function buyQuality(){ if(beanCoins<15)return; beanCoins-=15; upgrades.quality++; updateUI(); }
-function buyLuck(){ if(beanCoins<20)return; beanCoins-=20; upgrades.luck++; updateUI(); }
-function buyXPBoost(){ if(beanCoins<25)return; beanCoins-=25; upgrades.xpBoost++; updateUI(); }
-
-/* SAVE */
-function saveGame(){
-  localStorage.setItem("beanSave", JSON.stringify({beanCoins,xp,level,upgrades}));
-  alert("saved bean reality");
+// ── SAVE ──────────────────────────────────────────────────────────────────
+function saveGame() {
+  localStorage.setItem("beanSave", JSON.stringify({
+    beanCoins, xp, level, upgrades,
+    achievements: [...unlockedAchievements]
+  }));
+  showToast("💾 bean reality saved");
 }
 
-(function load(){
-  const s = JSON.parse(localStorage.getItem("beanSave"));
-  if(!s) return;
-  beanCoins = s.beanCoins;
-  xp = s.xp;
-  level = s.level;
-  upgrades = s.upgrades;
+(function load() {
+  const s = JSON.parse(localStorage.getItem("beanSave") || "null");
+  if (!s) return;
+  beanCoins = s.beanCoins || 0;
+  xp        = s.xp        || 0;
+  level     = s.level     || 1;
+  upgrades  = s.upgrades  || { speed:0, quality:0, luck:0, xpBoost:0 };
+  if (s.achievements) s.achievements.forEach(id => unlockedAchievements.add(id));
   updateUI();
+  renderAchievements();
 })();
 
-/* SHELL FIXED */
-function initShell(){
-  const input = document.getElementById("terminalInput");
-  const out = document.getElementById("terminalOutput");
+// ── RM -RF / ESCALATION ───────────────────────────────────────────────────
+function rmReality() {
+  rmCount++;
+  if (rmCount === 1) unlock("reality_deleted");
+  if (rmCount === 5) unlock("reality_shredded");
 
-  function print(t){
-    out.innerHTML += "<br>beans@beanland:~$ " + t;
+  const body = document.body;
+
+  if (rmCount === 1) {
+    body.style.transform = "rotate(1deg)";
+    return "reality deleted";
+
+  } else if (rmCount === 2) {
+    body.style.transform = "rotate(5deg) scale(0.97)";
+    return "reality fragmenting...";
+
+  } else if (rmCount === 3) {
+    body.style.transform = "rotate(180deg)";
+    return "reality inverted. good luck down there";
+
+  } else if (rmCount === 4) {
+    body.style.transform = "rotate(180deg)";
+    body.style.filter    = "invert(1) hue-rotate(90deg)";
+    return "reality corrupted beyond recognition";
+
+  } else {
+    // ✦ FINAL BOSS: matrix rain + full crash + reboot
+    startMatrix();
+    setTimeout(() => {
+      stopMatrix();
+      body.style.transform = "";
+      body.style.filter    = "";
+      rmCount = 0;
+      document.getElementById("title").innerText = "reality.exe crashed. rebooting...";
+      setTimeout(() => document.getElementById("title").innerText = "", 2000);
+    }, 3000);
+    return "KERNEL PANIC: reality segfault at 0x00000000 — rebooting in 3s";
+  }
+}
+
+// ── MATRIX RAIN ───────────────────────────────────────────────────────────
+function startMatrix() {
+  const canvas = document.getElementById("matrixCanvas");
+  canvas.style.display = "block";
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx  = canvas.getContext("2d");
+  const cols  = Math.floor(canvas.width / 16);
+  const drops = Array(cols).fill(1);
+
+  matrixInterval = setInterval(() => {
+    ctx.fillStyle = "rgba(0,0,0,0.05)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#00ff66";
+    ctx.font = "16px monospace";
+    drops.forEach((y, i) => {
+      const char = String.fromCharCode(0x30A0 + Math.random() * 96);
+      ctx.fillText(char, i * 16, y * 16);
+      if (y * 16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    });
+  }, 33);
+}
+
+function stopMatrix() {
+  clearInterval(matrixInterval);
+  matrixInterval = null;
+  const canvas = document.getElementById("matrixCanvas");
+  canvas.style.display = "none";
+  canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// ── KONAMI CODE ───────────────────────────────────────────────────────────
+const KONAMI_SEQ = [
+  "ArrowUp","ArrowUp","ArrowDown","ArrowDown",
+  "ArrowLeft","ArrowRight","ArrowLeft","ArrowRight",
+  "b","a"
+];
+let konamiIdx = 0;
+
+function triggerKonami() {
+  unlock("konami");
+  beanCoins += 50;
+  updateUI();
+  showToast("🫘 +50 coins from the ancient code|the beans knew");
+  for (let i = 0; i < 35; i++) {
+    setTimeout(spawnBean, Math.random() * 1800);
+  }
+}
+
+function spawnBean() {
+  const bean = document.createElement("div");
+  bean.className = "beanRain";
+  bean.textContent = "🫘";
+  bean.style.left = Math.random() * 100 + "vw";
+  bean.style.animationDuration = (1.5 + Math.random() * 2) + "s";
+  document.body.appendChild(bean);
+  bean.addEventListener("animationend", () => bean.remove());
+}
+
+// ── SHELL ─────────────────────────────────────────────────────────────────
+function initShell() {
+  const input = document.getElementById("terminalInput");
+  const out   = document.getElementById("terminalOutput");
+  const PROMPT = "beans@beanland:~$ ";
+
+  function line(t) {
+    out.innerHTML += "<br>" + t;
+    out.scrollTop = out.scrollHeight;
   }
 
-  input.addEventListener("keydown",(e)=>{
-    if(e.key!=="Enter") return;
-
+  input.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
     const cmd = input.value.trim();
-    input.value="";
+    input.value = "";
 
-    print(cmd);
+    // echo command with prompt
+    out.innerHTML += `<br><b>${PROMPT}</b>${cmd}`;
 
-    switch(cmd.toLowerCase()){
+    switch (cmd.toLowerCase()) {
       case "help":
-        print("help, neofetch, beanstats, sudo chaos, clear, rm reality");
+        line("help | neofetch | beanstats | ls | cat beans.txt | cat .hidden_bean");
+        line("sudo chaos | rm -rf / | ./chaos.sh | clear");
         break;
       case "neofetch":
-        print("BeanOS v6.9 🐧");
+        line("BeanOS v6.9 🐧 | kernel: linux-cachyos | shell: fish");
+        line("uptime: too long | ram: all of it | beans: yes");
         break;
       case "beanstats":
-        print(`coins=${beanCoins} level=${level} xp=${xp}`);
+        line(`coins=${beanCoins}  level=${level}  xp=${xp}  rm_count=${rmCount}`);
+        break;
+      case "ls":
+        line("beans.txt &nbsp; reality.bak &nbsp; chaos.sh &nbsp; .hidden_bean &nbsp; node_modules/");
+        break;
+      case "cat beans.txt":
+        line("bean bean bean bean bean bean bean bean bean bean bean");
+        break;
+      case "cat .hidden_bean":
+        line("you found the hidden bean. +5 coins");
+        beanCoins += 5;
+        updateUI();
+        unlock("hidden_bean");
+        break;
+      case "cat node_modules/":
+        line("cat: node_modules/: is a directory (and also a black hole)");
+        break;
+      case "cat reality.bak":
+        line("binary file reality.bak matches");
         break;
       case "sudo chaos":
         chaosMode();
-        print("chaos enabled");
+        line(chaos ? "chaos: enabled" : "chaos: disabled");
         break;
-      case "rm reality":
-        document.body.style.transform="rotate(1deg)";
-        print("reality deleted");
+      case "rm -rf /":
+        line(rmReality());
+        break;
+      case "./chaos.sh":
+        line("bash: permission denied. try sudo");
+        break;
+      case "sudo":
+        line("sudo: what do you want to do exactly");
+        break;
+      case "exit":
+        line("nice try");
         break;
       case "clear":
-        out.innerHTML="beans@beanland:~$";
-        break;
+        out.innerHTML = `<b>${PROMPT}</b>`;
+        return;
       default:
-        print("command not found");
+        if (cmd.startsWith("sudo ")) {
+          line("sudo: " + cmd.slice(5) + ": are you sure about that");
+        } else {
+          line(`bash: ${cmd}: command not found`);
+        }
     }
+
+    // trailing empty prompt
+    out.innerHTML += `<br><b>${PROMPT}</b>`;
+    out.scrollTop = out.scrollHeight;
   });
 }
 
-/* SECRET UNLOCK */
-document.addEventListener("keydown",(e)=>{
-  keyBuffer += e.key.toLowerCase();
-  if(keyBuffer.length>60) keyBuffer=keyBuffer.slice(-60);
+// ── KEY LISTENERS ─────────────────────────────────────────────────────────
+document.addEventListener("keydown", (e) => {
 
-  if(keyBuffer.includes("bean shell") && !shellUnlocked){
+  // ① shell unlock (type "bean shell" anywhere)
+  keyBuffer += e.key.toLowerCase();
+  if (keyBuffer.length > 60) keyBuffer = keyBuffer.slice(-60);
+  if (keyBuffer.includes("bean shell") && !shellUnlocked) {
     shellUnlocked = true;
-    document.getElementById("terminal").style.display="block";
-    document.getElementById("title").innerText="shell unlocked";
+    document.getElementById("terminal").style.display = "block";
+    document.getElementById("title").innerText = "shell unlocked";
+    unlock("shell_hacker");
     initShell();
   }
+
+  // ② konami code
+  if (e.key === KONAMI_SEQ[konamiIdx]) {
+    konamiIdx++;
+    if (konamiIdx === KONAMI_SEQ.length) {
+      konamiIdx = 0;
+      triggerKonami();
+    }
+  } else {
+    konamiIdx = (e.key === KONAMI_SEQ[0]) ? 1 : 0;
+  }
+
 });
 
+// ── INIT ──────────────────────────────────────────────────────────────────
 updateUI();
+renderAchievements();
 getMeme();
 
 </script>
-
 </body>
 </html>
