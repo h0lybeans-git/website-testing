@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -363,7 +362,8 @@ async function getMeme() {
 
   let post;
   try {
-    const r = await fetch(`https://www.reddit.com/r/${sub}/hot.json?limit=50`);
+    const redditUrl = `https://www.reddit.com/r/${sub}/hot.json?limit=50`;
+    const r = await fetch("https://corsproxy.io/?" + encodeURIComponent(redditUrl));
     const d = await r.json();
     const posts = d.data.children.map(c => c.data).filter(p =>
       !p.over_18 && !p.is_video &&
@@ -371,7 +371,7 @@ async function getMeme() {
     );
     if (posts.length > 0) post = posts[Math.floor(Math.random() * posts.length)];
   } catch (e) {
-    document.getElementById("loading").innerText = "reddit blocked it — open via localhost instead of file://";
+    document.getElementById("loading").innerText = "meme fetch failed: " + e.message;
     return;
   }
 
