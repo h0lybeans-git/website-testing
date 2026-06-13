@@ -362,9 +362,10 @@ async function getMeme() {
 
   let post;
   try {
-    const redditUrl = `https://www.reddit.com/r/${sub}/hot.json?limit=50`;
-    const r = await fetch("https://corsproxy.io/?" + encodeURIComponent(redditUrl));
+    const r = await fetch(`/api/memes?sub=${sub}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
+    if (!d.data?.children) throw new Error("unexpected response shape");
     const posts = d.data.children.map(c => c.data).filter(p =>
       !p.over_18 && !p.is_video &&
       (p.post_hint === "image" || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(p.url))
@@ -374,6 +375,17 @@ async function getMeme() {
     document.getElementById("loading").innerText = "meme fetch failed: " + e.message;
     return;
   }
+
+  if (!post) {
+    document.getElementById("loading").innerText = "no images found, try again";
+    return;
+  }
+
+  document.getElementById("meme").src = post.url;
+  document.getElementById("title").innerText = `[r/${sub}] ${post.title}`;
+  earnCoins(post.ups || 0);
+  document.getElementById("loading").innerText = "";
+}
 
   if (!post) {
     document.getElementById("loading").innerText = "no images found, try again";
