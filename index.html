@@ -387,17 +387,6 @@ async function getMeme() {
   document.getElementById("loading").innerText = "";
 }
 
-  if (!post) {
-    document.getElementById("loading").innerText = "no images found, try again";
-    return;
-  }
-
-  document.getElementById("meme").src = post.url;
-  document.getElementById("title").innerText = `[r/${sub}] ${post.title}`;
-  earnCoins(post.ups || 0);
-  document.getElementById("loading").innerText = "";
-}
-
 function chaosMode() {
   if (chaos) { clearInterval(chaos); chaos = null; return; }
   chaos = setInterval(getMeme, 1200 - upgrades.speed * 200);
