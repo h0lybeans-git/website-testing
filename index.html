@@ -196,6 +196,59 @@ img {
 .achieveRow.done .achDesc {
   color: #aaa;
 }
+
+/* ── FLOATY COIN TEXT ── */
+.floaty {
+  position: fixed;
+  pointer-events: none;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 16px;
+  color: #00ff99;
+  text-shadow: 0 0 8px #00ff99;
+  animation: floatUp 0.8s ease-out forwards;
+  z-index: 9998;
+  transform: translateX(-50%);
+}
+
+@keyframes floatUp {
+  0%   { transform: translateX(-50%) translateY(0);     opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-60px); opacity: 0; }
+}
+
+/* ── BIRD ── */
+#bird {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 5000;
+  text-align: center;
+  font-family: monospace;
+  font-size: 13px;
+  color: #00ff99;
+  user-select: none;
+}
+
+#birdSpeech {
+  display: none;
+  background: #0d1117;
+  border: 1px solid #00ff99;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  box-shadow: 0 0 8px #00ff9922;
+}
+
+#birdArt {
+  margin: 0;
+  cursor: pointer;
+  text-shadow: 0 0 6px #00ff9988;
+  transition: text-shadow 0.1s;
+}
+
+#birdArt:hover { text-shadow: 0 0 14px #00ff99; }
 </style>
 </head>
 
@@ -225,6 +278,11 @@ img {
 <div id="loading"></div>
 
 <canvas id="matrixCanvas"></canvas>
+
+<div id="bird">
+  <div id="birdSpeech"></div>
+  <pre id="birdArt" onclick="birdPoke()">>(^,^)></pre>
+</div>
 
 <div id="terminal">
   <div id="terminalOutput">beans@beanland:~$</div>
@@ -325,6 +383,7 @@ function addXP(a) {
     beanCoins += 10 * level;
     showToast(`📈 Level Up! Now level ${level}|+${10*level} bonus coins`);
     if (level >= 5) unlock("level5");
+    birdFlap(800); birdSay("level up!!");
   }
   updateUI();
 }
@@ -387,6 +446,7 @@ function chaosMode() {
   if (chaos) { clearInterval(chaos); chaos = null; return; }
   chaos = setInterval(getMeme, 1200 - upgrades.speed * 200);
   unlock("chaos_enjoyer");
+  birdSay("TOO MANY MEMES");
 }
 
 // ── SAVE ──────────────────────────────────────────────────────────────────
@@ -618,6 +678,77 @@ document.addEventListener("keydown", (e) => {
   }
 
 });
+
+// ── CLICKER ───────────────────────────────────────────────────────────────
+document.getElementById("meme").addEventListener("click", (e) => {
+  if (!document.getElementById("meme").src) return;
+  const gain = 1 + upgrades.luck;
+  beanCoins += gain;
+  addXP(gain * 2);
+  updateUI();
+  showFloat("+" + gain + " 🪙", e.clientX, e.clientY);
+  birdFlap(250);
+});
+
+function showFloat(text, x, y) {
+  const el = document.createElement("div");
+  el.className = "floaty";
+  el.textContent = text;
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+  document.body.appendChild(el);
+  el.addEventListener("animationend", () => el.remove());
+}
+
+// ── BIRD ──────────────────────────────────────────────────────────────────
+const BIRD_FRAMES  = [">(^,^)>", ">(^,^)^", "^(^,^)>", "^(^,^)^"];
+const BIRD_QUIPS   = [
+  "tweet", "bean...", "chirp!", ":3", "meme acquired",
+  "bird law", "i am bird", "squawk", "good meme", "more memes",
+  ">(^,^)7", "what if bean", "tweet tweet", "i live here now",
+];
+
+let birdFlapping = false;
+let birdSpeechTimeout = null;
+
+function birdFlap(duration = 700) {
+  if (birdFlapping) return;
+  birdFlapping = true;
+  const art = document.getElementById("birdArt");
+  let f = 0;
+  const iv = setInterval(() => {
+    art.textContent = BIRD_FRAMES[f % BIRD_FRAMES.length];
+    f++;
+  }, 120);
+  setTimeout(() => {
+    clearInterval(iv);
+    art.textContent = BIRD_FRAMES[0];
+    birdFlapping = false;
+  }, duration);
+}
+
+function birdSay(msg) {
+  const speech = document.getElementById("birdSpeech");
+  clearTimeout(birdSpeechTimeout);
+  speech.textContent = msg;
+  speech.style.display = "block";
+  birdSpeechTimeout = setTimeout(() => speech.style.display = "none", 2500);
+}
+
+function birdPoke() {
+  birdFlap(500);
+  birdSay(BIRD_QUIPS[Math.floor(Math.random() * BIRD_QUIPS.length)]);
+}
+
+function birdRandomEvent() {
+  const r = Math.random();
+  if      (r < 0.4) birdFlap(400);
+  else if (r < 0.7) { birdSay(BIRD_QUIPS[Math.floor(Math.random() * BIRD_QUIPS.length)]); }
+  else               { birdFlap(600); birdSay(BIRD_QUIPS[Math.floor(Math.random() * BIRD_QUIPS.length)]); }
+  setTimeout(birdRandomEvent, 5000 + Math.random() * 10000);
+}
+
+setTimeout(birdRandomEvent, 4000);
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 updateUI();
