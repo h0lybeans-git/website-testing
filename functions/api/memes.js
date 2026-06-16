@@ -1,4 +1,4 @@
-port async function onRequest({ request }) {
+export async function onRequest({ request }) {
   const sub = new URL(request.url).searchParams.get("sub") || "memes";
   const allowed = ["memes","dankmemes","shitposting","me_irl","funny"];
   if (!allowed.includes(sub)) {
