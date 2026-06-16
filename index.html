@@ -360,35 +360,27 @@ async function getMeme() {
   const subs = ["memes","dankmemes","shitposting","me_irl","funny"];
   const sub  = subs[Math.floor(Math.random() * subs.length)];
 
-  let post;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
   try {
-    const r = await fetch(`/api/memes?sub=${sub}`);
-    if (!r.ok) {
-      let detail = `HTTP ${r.status}`;
-      try { const e = await r.json(); detail = e.error || detail; } catch {}
-      throw new Error(detail);
-    }
+    const r = await fetch(`https://meme-api.com/gimme/${sub}`, { signal: controller.signal });
+    clearTimeout(timeout);
     const d = await r.json();
-    if (!d.data?.children) throw new Error("unexpected response shape");
-    const posts = d.data.children.map(c => c.data).filter(p =>
-      !p.over_18 && !p.is_video &&
-      (p.post_hint === "image" || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(p.url))
-    );
-    if (posts.length > 0) post = posts[Math.floor(Math.random() * posts.length)];
+    if (!d.url || d.nsfw) {
+      document.getElementById("loading").innerText = "got a bad meme, try again";
+      return;
+    }
+    document.getElementById("meme").src = d.url;
+    document.getElementById("title").innerText = `[r/${sub}] ${d.title}`;
+    earnCoins(d.ups || 0);
+    document.getElementById("loading").innerText = "";
   } catch (e) {
-    document.getElementById("loading").innerText = "meme fetch failed: " + e.message;
-    return;
+    clearTimeout(timeout);
+    document.getElementById("loading").innerText = e.name === "AbortError"
+      ? "meme-api timed out, try again"
+      : "meme fetch failed: " + e.message;
   }
-
-  if (!post) {
-    document.getElementById("loading").innerText = "no images found, try again";
-    return;
-  }
-
-  document.getElementById("meme").src = post.url;
-  document.getElementById("title").innerText = `[r/${sub}] ${post.title}`;
-  earnCoins(post.ups || 0);
-  document.getElementById("loading").innerText = "";
 }
 
 function chaosMode() {
