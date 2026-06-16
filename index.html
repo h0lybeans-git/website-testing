@@ -571,6 +571,40 @@ function spawnBean() {
 }
 
 // ── SHELL ─────────────────────────────────────────────────────────────────
+// ── LYNX ──────────────────────────────────────────────────────────────────
+async function runLynx(target, out) {
+  if (!target) {
+    out.innerHTML += "<br>usage: lynx &lt;url&gt;";
+    return;
+  }
+  if (!/^https?:\/\//i.test(target)) target = "https://" + target;
+
+  out.innerHTML += "<br>Lynx: fetching " + target + " ...";
+  out.scrollTop = out.scrollHeight;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(target);
+    const r = await fetch(proxyUrl, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+
+    let html = await r.text();
+    if (html.length > 20000) {
+      html = html.slice(0, 20000) + "<br><i>...(truncated — page too thicc for bean shell)</i>";
+    }
+
+    out.innerHTML +=
+      `<div style="border-top:1px dashed #00ff6666;margin:10px 0;padding-top:10px">${html}</div>`;
+  } catch (e) {
+    clearTimeout(timer);
+    const reason = e.name === "AbortError" ? "timed out" : e.message;
+    out.innerHTML += `<br>lynx: failed to load page (${reason})`;
+  }
+}
+
 function initShell() {
   const input = document.getElementById("terminalInput");
   const out   = document.getElementById("terminalOutput");
@@ -581,7 +615,7 @@ function initShell() {
     out.scrollTop = out.scrollHeight;
   }
 
-  input.addEventListener("keydown", (e) => {
+  input.addEventListener("keydown", async (e) => {
     if (e.key !== "Enter") return;
     const cmd = input.value.trim();
     input.value = "";
@@ -589,10 +623,19 @@ function initShell() {
     // echo command with prompt
     out.innerHTML += `<br><b>${PROMPT}</b>${cmd}`;
 
-    switch (cmd.toLowerCase()) {
+    const lower = cmd.toLowerCase();
+
+    if (lower.startsWith("lynx ") || lower === "lynx") {
+      await runLynx(cmd.slice(4).trim(), out);
+      out.innerHTML += `<br><b>${PROMPT}</b>`;
+      out.scrollTop = out.scrollHeight;
+      return;
+    }
+
+    switch (lower) {
       case "help":
         line("help | neofetch | beanstats | ls | cat beans.txt | cat .hidden_bean");
-        line("sudo chaos | rm -rf / | ./chaos.sh | clear");
+        line("sudo chaos | rm -rf / | ./chaos.sh | lynx &lt;url&gt; | clear");
         break;
       case "neofetch":
         line("BeanOS v6.9 🐧 | kernel: linux-cachyos | shell: fish");
