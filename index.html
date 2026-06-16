@@ -363,7 +363,11 @@ async function getMeme() {
   let post;
   try {
     const r = await fetch(`/api/memes?sub=${sub}`);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    if (!r.ok) {
+      let detail = `HTTP ${r.status}`;
+      try { const e = await r.json(); detail = e.error || detail; } catch {}
+      throw new Error(detail);
+    }
     const d = await r.json();
     if (!d.data?.children) throw new Error("unexpected response shape");
     const posts = d.data.children.map(c => c.data).filter(p =>
